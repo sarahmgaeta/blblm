@@ -12,7 +12,7 @@
 \item{...}{Additional arguments.}
 }
 \value{
-Estimated coefficients of the given fitted blblblm model.
+Estimated coefficients of the given fitted blblm model.
 }
 \description{
 Estimates the coefficients for a fitted blblm model.

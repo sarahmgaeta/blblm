@@ -9,11 +9,13 @@
 \arguments{
 \item{object}{Fitted blblogreg model.}
 
+\item{new_data}{New data set to be used in prediction.}
+
+\item{confidence}{Single logical indicating whether the output should contain the confidence interval.}
+
 \item{level}{Confidence level.}
 
 \item{...}{Additional arguments.}
-
-\item{parm}{Parameters to be estimated with confidence intervals.}
 }
 \value{
 New, predicted values based on given new data.

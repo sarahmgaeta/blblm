@@ -4,13 +4,13 @@
 <!-- badges: end -->
 
 # Bag of Little Bootstraps
-This R package implements the bag of little bootstraps algorithm for both linear regression and logistic regression models. 
+This R package implements the Bag of Little Bootstraps Algorithm for both linear and logistic regression models. 
 
-This package allows users to retrieve the coefficients, sigma values, predicted values, and confidence intervals from the bag of little bootstraps linear regression and/or logistic regression. 
+This package estimates the following summary statistics: coefficients, sigma values (for linear regression), predicted values, and confidence intervals for linear and/or logistic regressions using the Bag of Little Bootstraps Algorithm. 
 
-To increase efficiency, users have the option using parallelization depending on which function is chosen to conduct the regression model.
+To increase efficiency, users have the option of using parallelization depending on which function is used to create the regression model.
 
-Please look at the vignettes for details on the functions available to users.
+Please look at the vignettes for details on the Bag of Little Bootstraps Algorithm and the functions made available to users from this package.
 
 # Installation
 

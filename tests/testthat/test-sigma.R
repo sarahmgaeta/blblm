@@ -5,8 +5,8 @@ test_that("sigma output is as expected", {
   expect_equal(sigma(fit), sigma(fit, confidence = TRUE)[[1]])
 
   # Expect sigma to return a singular value if confidence = FALSE
-  # Expect sigma to return a list of 3 values if confidence = TRUE
   expect_equal(length(sigma(fit)), 1)
+  # Expect sigma to return a list of 3 values if confidence = TRUE
   expect_equal(length(sigma(fit, confidence = TRUE)), 3)
 
   # Expect sigma outputs to be numeric

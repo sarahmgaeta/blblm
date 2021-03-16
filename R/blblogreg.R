@@ -28,11 +28,13 @@ blblogreg <- function(formula, data, m = 10, B = 5000) {
   data_list <- split_data(data, m)
   estimates <- map(
     data_list,
-    ~ glm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+    ~ glm_each_subsample(formula = formula, data = ., n = nrow(data), B = B)
+  )
   res <- list(estimates = estimates, formula = formula)
   class(res) <- "blblm"
   invisible(res)
 }
+
 
 #' @title Bag of Little Bootstraps Logistic Regression Model with Parallelization
 #' @description Fits a logistic regression model on a given data set using the bag of little bootstraps algorithm and parallelization for efficiency.
@@ -55,11 +57,13 @@ future_blblogreg <- function(formula, data, m = 10, B = 5000, w = 4) {
 
   estimates <- future_map(
     data_list,
-    ~ glm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+    ~ glm_each_subsample(formula = formula, data = ., n = nrow(data), B = B)
+  )
   res <- list(estimates = estimates, formula = formula)
   class(res) <- "blblm"
   invisible(res)
 }
+
 
 #' @title Split Data
 #' @description Splits the given data set into m sub-samples of approximated equal sizes.
@@ -74,6 +78,7 @@ split_data <- function(data, m) {
   idx <- sample.int(m, nrow(data), replace = TRUE)
   data %>% split(idx)
 }
+
 
 #' @title Logistic Regression Model for Each Sub-sample
 #' @description Fits a logistic regression model on each sub-sample and returns the model coefficients
@@ -96,6 +101,7 @@ glm_each_subsample <- function(formula, data, n, B) {
   replicate(B, glm1(X, y, n), simplify = FALSE)
 }
 
+
 #' @title Linear Model for Each Bag of Little Bootstrap Data Set
 #' @description Computes the regression estimates for a bag of little bootstraps data set.
 #'
@@ -112,6 +118,7 @@ glm1 <- function(X, y, n) {
   list(coef = blbcoef(fit))
 }
 
+
 #' @title Bag of Little Bootstraps Coefficients
 #' @description Extracts the coefficients of a given logistic regression model.
 #'
@@ -123,6 +130,7 @@ glm1 <- function(X, y, n) {
 blbcoef <- function(fit) {
   coef(fit)
 }
+
 
 #' @title Print Bag of Little Bootstraps Logistic Regression Model
 #' @description Prints the formula used to create the given fitted blblogreg model.
@@ -138,6 +146,7 @@ print.blblogreg <- function(x, ...) {
   cat("blblogreg model:", capture.output(x$formula))
   cat("\n")
 }
+
 
 #' @title Coefficients of blblogreg Model
 #' @description Estimates the coefficients for a fitted blblogreg model.
@@ -183,11 +192,13 @@ confint.blblogreg <- function(object, parm = NULL, level = 0.95, ...) {
   out
 }
 
+
 #' @title Predict New Values with blblogreg Model
 #' @description Predicts new values given new data.
 #'
 #' @param object Fitted blblogreg model.
-#' @param parm Parameters to be estimated with confidence intervals.
+#' @param new_data New data set to be used in prediction.
+#' @param confidence Single logical indicating whether the output should contain the confidence interval.
 #' @param level Confidence level.
 #' @param ... Additional arguments.
 #'
@@ -200,8 +211,8 @@ predict.blblogreg <- function(object, new_data, confidence = FALSE, level = 0.95
   X <- model.matrix(reformulate(attr(terms(object$formula), "term.labels")), new_data)
   if (confidence) {
     map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
-               apply(1, mean_lwr_upr, level = level) %>%
-               t())
+      apply(1, mean_lwr_upr, level = level) %>%
+      t())
   } else {
     map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
   }
@@ -213,13 +224,16 @@ mean_lwr_upr <- function(x, level = 0.95) {
   c(fit = mean(x), quantile(x, c(alpha / 2, 1 - alpha / 2)) %>% set_names(c("lwr", "upr")))
 }
 
+
 map_mean <- function(.x, .f, ...) {
   (map(.x, .f, ...) %>% reduce(`+`)) / length(.x)
 }
 
+
 map_cbind <- function(.x, .f, ...) {
   map(.x, .f, ...) %>% reduce(cbind)
 }
+
 
 map_rbind <- function(.x, .f, ...) {
   map(.x, .f, ...) %>% reduce(rbind)

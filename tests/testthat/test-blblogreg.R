@@ -1,5 +1,5 @@
 test_that("blblogreg outputs as expected", {
-  fit = blblogreg(am ~ mpg, data = mtcars, m = 3, B = 100)
+  fit <- blblogreg(am ~ mpg, data = mtcars, m = 3, B = 100)
 
   # Expect 2 estimates
   expect_equal(length(coef(fit)), 2)

@@ -1,0 +1,180 @@
+---
+title: "blblm-vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{blblm-vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(blblm)
+```
+
+# Bag of Little Bootstraps Algorithm
+The Bag of Little Bootstraps Algorithm...
+
+# Functions for Linear Regression
+Users have the option to use the function blblm or future_blblm to implement the Bag of Little Bootstraps algorithm in linear regression. The difference between blblm and future_blblm is that future_blblm uses parallelization via the R package "furrr."
+
+## blblm
+This function fits a linear model on a given data set using the bag of little bootstraps algorithm.
+
+Input:
+
+- formula: A symbolic description of the linear regression model to be fitted.
+
+- data: A data set, such as a data frame or list, containing the variables in the model.
+
+- m: Number indicating how many sub-samples the data will be split into. Default is 10.
+
+- B: Number of bootstrap samples. Default is 5000.
+
+Return:
+
+Coefficients of each fit.
+
+```{r}
+blblm <- function(formula, data, m = 10, B = 5000) {
+  data_list <- split_data(data, m)
+  estimates <- map(
+    data_list,
+    ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+  res <- list(estimates = estimates, formula = formula)
+  class(res) <- "blblm"
+  invisible(res)
+}
+```
+
+## future_blblm
+This function fits a linear model on a given data set using the bag of little bootstraps algorithm and parallelization for efficiency.
+
+Input:
+
+- formula: A symbolic description of the linear regression model to be fitted.
+
+- data: A data set, such as a data frame or list, containing the variables in the model.
+
+- m: Number indicating how many sub-samples the data will be split into. Default is 10.
+
+- B: Number of bootstrap samples. Default is 5000.
+
+- w: Number of workers. Default is 4.
+
+Return:
+
+Coefficients of each fit.
+
+```{r}
+future_blblm <- function(formula, data, m = 10, B = 5000, w = 4) {
+  library(furrr)
+  plan(multiprocess, workers = w)
+  options(future.rng.onMisuse = "ignore")
+
+  data_list <- split_data(data, m)
+
+  estimates <- future_map(
+    data_list,
+    ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+  res <- list(estimates = estimates, formula = formula)
+  class(res) <- "blblm"
+  invisible(res)
+}
+```
+
+
+# Functions for Logistic Regression
+Users have the option to use the function blblogreg or future_blblogreg to implement the Bag of Little Bootstraps algorithm in logistic regression. The difference between blblog and future_blblogreg is that future_blblogreg uses parallelization via the R package "furrr."
+
+## blblogreg
+This function fits a logistic regression model on a given data set using the bag of little bootstraps algorithm.
+
+Inputs:
+
+- formula: A symbolic description of the logistic regression model to be fitted.
+
+- data: A data set, such as a data frame or list, containing the variables in the model.
+
+- m: Number indicating how many sub-samples the data will be split into. Default is 10.
+
+- B: Number of bootstrap samples. Default is 5000.
+
+Return:
+
+Coefficients of each fit.
+
+```{r}
+blblogreg <- function(formula, data, m = 10, B = 5000) {
+  data_list <- split_data(data, m)
+  estimates <- map(
+    data_list,
+    ~ glm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+  res <- list(estimates = estimates, formula = formula)
+  class(res) <- "blblm"
+  invisible(res)
+}
+```
+
+## future_blblogreg
+This function fits a logistic regression model on a given data set using the bag of little bootstraps algorithm and parallelization for efficiency.
+
+Inputs:
+
+- formula: A symbolic description of the logistic regression model to be fitted.
+
+- data: A data set, such as a data frame or list, containing the variables in the model.
+
+- m: Number indicating how many sub-samples the data will be split into. Default is 10.
+
+- B: Number of bootstrap samples. Default is 5000.
+
+- w: Number of workers. Default is 4.
+
+Return:
+
+Coefficients of each fit.
+
+```{r}
+future_blblogreg <- function(formula, data, m = 10, B = 5000, w = 4) {
+  library(furrr)
+  suppressWarnings(plan(multiprocess, workers = w))
+  options(future.rng.onMisuse = "ignore")
+
+  data_list <- split_data(data, m)
+
+  estimates <- future_map(
+    data_list,
+    ~ glm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+  res <- list(estimates = estimates, formula = formula)
+  class(res) <- "blblm"
+  invisible(res)
+}
+```
+
+# Supporting Functions
+The following functions can be used on fitted blblm or blblogreg models unless otherwise specified to retrieve specific values/estimates.
+
+## coef
+```{r}
+```
+
+## sigma
+This function can only be used on blblm objects.
+
+```{r}
+```
+
+## confint
+```{r}
+```
+
+## predict
+```{r}
+```

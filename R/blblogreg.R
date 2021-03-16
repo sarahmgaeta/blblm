@@ -4,7 +4,7 @@
 #' @import stats
 #' @importFrom magrittr %>%
 #' @details
-#' Linear Regression with Little Bag of Bootstraps
+#' Logistic Regression with Little Bag of Bootstraps
 "_PACKAGE"
 
 
@@ -12,10 +12,11 @@
 # from https://github.com/jennybc/googlesheets/blob/master/R/googlesheets.R
 utils::globalVariables(c("."))
 
-#' @title Bag of Little Bootstraps Linear Model
-#' @description Fits a linear model on a given data set using the bag of little bootstraps algorithm.
+
+#' @title Bag of Little Bootstraps Logistic Regression Model
+#' @description Fits a logistic regression model on a given data set using the bag of little bootstraps algorithm.
 #'
-#' @param formula A symbolic description of the linear regression model to be fitted.
+#' @param formula A symbolic description of the logistic regression model to be fitted.
 #' @param data A data set, such as a data frame or list, containing the variables in the model.
 #' @param m Number indicating how many sub-samples the data will be split into.
 #' @param B Number of bootstrap samples.
@@ -23,20 +24,20 @@ utils::globalVariables(c("."))
 #' @return Coefficients of each fit.
 #'
 #' @export
-blblm <- function(formula, data, m = 10, B = 5000) {
+blblogreg <- function(formula, data, m = 10, B = 5000) {
   data_list <- split_data(data, m)
   estimates <- map(
     data_list,
-    ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+    ~ glm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
   res <- list(estimates = estimates, formula = formula)
   class(res) <- "blblm"
   invisible(res)
 }
 
-#' @title Bag of Little Bootstraps Linear Model with Parallelization
-#' @description Fits a linear model on a given data set using the bag of little bootstraps algorithm and parallelization for efficiency.
+#' @title Bag of Little Bootstraps Logistic Regression Model with Parallelization
+#' @description Fits a logistic regression model on a given data set using the bag of little bootstraps algorithm and parallelization for efficiency.
 #'
-#' @param formula A symbolic description of the linear regression model to be fitted.
+#' @param formula A symbolic description of the logistic regression model to be fitted.
 #' @param data A data set, such as a data frame or list, containing the variables in the model.
 #' @param m Number indicating how many sub-samples the data will be split into.
 #' @param B Number of bootstrap samples.
@@ -45,16 +46,16 @@ blblm <- function(formula, data, m = 10, B = 5000) {
 #' @return Coefficients of each fit.
 #'
 #' @export
-future_blblm <- function(formula, data, m = 10, B = 5000, w = 4) {
+future_blblogreg <- function(formula, data, m = 10, B = 5000, w = 4) {
   library(furrr)
-  plan(multiprocess, workers = w)
+  suppressWarnings(plan(multiprocess, workers = w))
   options(future.rng.onMisuse = "ignore")
 
   data_list <- split_data(data, m)
 
   estimates <- future_map(
     data_list,
-    ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+    ~ glm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
   res <- list(estimates = estimates, formula = formula)
   class(res) <- "blblm"
   invisible(res)
@@ -74,25 +75,25 @@ split_data <- function(data, m) {
   data %>% split(idx)
 }
 
-#' @title Linear Model for Each Sub-sample
-#' @description Fits a linear model on each sub-sample and returns the model estimates (coefficients and sigma).
+#' @title Logistic Regression Model for Each Sub-sample
+#' @description Fits a logistic regression model on each sub-sample and returns the model coefficients
 #'
-#' @param formula A symbolic description of the linear regression model to be fitted.
+#' @param formula A symbolic description of the logistic regression model to be fitted.
 #' @param data A data set, such as a data frame or list, containing the variables in the model.
 #' @param n Number of rows of the given data set.
 #' @param B Number of bootstrap samples.
 #'
-#' @return Model estimates (coefficients and sigma).
+#' @return Model coefficients.
 #'
 #' compute the estimates
-lm_each_subsample <- function(formula, data, n, B) {
+glm_each_subsample <- function(formula, data, n, B) {
   # drop the original closure of formula,
   # otherwise the formula will pick a wrong variable from the global scope.
   environment(formula) <- environment()
   m <- model.frame(formula, data)
   X <- model.matrix(formula, m)
   y <- model.response(m)
-  replicate(B, lm1(X, y, n), simplify = FALSE)
+  replicate(B, glm1(X, y, n), simplify = FALSE)
 }
 
 #' @title Linear Model for Each Bag of Little Bootstrap Data Set
@@ -102,19 +103,19 @@ lm_each_subsample <- function(formula, data, n, B) {
 #' @param y Model response.
 #' @param n Number of rows of the given data set.
 #'
-#' @return List of coefficients and sigma.
+#' @return List of coefficients.
 #'
 #' compute the regression estimates for a blb dataset
-lm1 <- function(X, y, n) {
+glm1 <- function(X, y, n) {
   freqs <- as.vector(rmultinom(1, n, rep(1, nrow(X))))
-  fit <- lm.wfit(X, y, freqs)
-  list(coef = blbcoef(fit), sigma = blbsigma(fit))
+  fit <- glm.fit(X, y, weights = freqs, family = binomial())
+  list(coef = blbcoef(fit))
 }
 
 #' @title Bag of Little Bootstraps Coefficients
-#' @description Extracts the coefficients of a given linear model.
+#' @description Extracts the coefficients of a given logistic regression model.
 #'
-#' @param fit Fitted linear model.
+#' @param fit Fitted logistic regression model.
 #'
 #' @return Coefficients from the given fit.
 #'
@@ -123,83 +124,41 @@ blbcoef <- function(fit) {
   coef(fit)
 }
 
-#' @title Bag of Little Bootstraps Sigma
-#' @description Computes sigma of a given linear model.
+#' @title Print Bag of Little Bootstraps Logistic Regression Model
+#' @description Prints the formula used to create the given fitted blblogreg model.
 #'
-#' @param fit Fitted linear model.
-#'
-#' @return Sigma of the given fit.
-#'
-#' compute sigma from fit
-blbsigma <- function(fit) {
-  p <- fit$rank
-  e <- fit$residuals
-  w <- fit$weights
-  sqrt(sum(w * (e^2)) / (sum(w) - p))
-}
-
-#' @title Print Bag of Little Bootstraps Linear Model
-#' @description Prints the formula used to create the given fitted blblm model.
-#'
-#' @param x Fitted blblm model.
+#' @param x Fitted blblogreg model.
 #' @param ... Additional arguments.
 #'
-#' @return Formula used to create the given fitted blblm model.
+#' @return Formula used to create the given fitted blblogreg model.
 #'
 #' @export
-#' @method print blblm
-print.blblm <- function(x, ...) {
-  cat("blblm model:", capture.output(x$formula))
+#' @method print blblogreg
+print.blblogreg <- function(x, ...) {
+  cat("blblogreg model:", capture.output(x$formula))
   cat("\n")
 }
 
-
-#' @title Sigma of blblm Model
-#' @description Estimates sigma and, optionally, the confidence interval for sigma for a fitted blblm model.
+#' @title Coefficients of blblogreg Model
+#' @description Estimates the coefficients for a fitted blblogreg model.
 #'
-#' @param object Fitted blblm model.
-#' @param confidence Single logical indicating whether the output should contain the confidence interval.
-#' @param level Confidence level.
+#' @param object Fitted blblogreg model.
 #' @param ... Additional arguments.
 #'
-#' @return Estimated value for sigma of the given fitted blblm model and, optionally, the confidence interval for sigma at the specified confidence level.
+#' @return Estimated coefficients of the given fitted blblogreg model.
 #'
 #' @export
-#' @method sigma blblm
-sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
-  est <- object$estimates
-  sigma <- mean(map_dbl(est, ~ mean(map_dbl(., "sigma"))))
-  if (confidence) {
-    alpha <- 1 - 0.95
-    limits <- est %>%
-      map_mean(~ quantile(map_dbl(., "sigma"), c(alpha / 2, 1 - alpha / 2))) %>%
-      set_names(NULL)
-    return(c(sigma = sigma, lwr = limits[1], upr = limits[2]))
-  } else {
-    return(sigma)
-  }
-}
-
-#' @title Coefficients of blblm Model
-#' @description Estimates the coefficients for a fitted blblm model.
-#'
-#' @param object Fitted blblm model.
-#' @param ... Additional arguments.
-#'
-#' @return Estimated coefficients of the given fitted blblblm model.
-#'
-#' @export
-#' @method coef blblm
-coef.blblm <- function(object, ...) {
+#' @method coef blblogreg
+coef.blblogreg <- function(object, ...) {
   est <- object$estimates
   map_mean(est, ~ map_cbind(., "coef") %>% rowMeans())
 }
 
 
-#' @title Confidence Interval for blblm Model Estimates
+#' @title Confidence Interval for blblogreg Model Estimates
 #' @description Computes confidence interval(s) for model estimate(s) or given parameter(s) at a specified confidence level.
 #'
-#' @param object Fitted blblm model.
+#' @param object Fitted blblogreg model.
 #' @param parm Parameters to calculate confidence intervals for.
 #' @param level Confidence level.
 #' @param ... Additional arguments.
@@ -207,8 +166,8 @@ coef.blblm <- function(object, ...) {
 #' @return Confidence interval(s) for model estimate(s) or given parameter(s) at a specified confidence level.
 #'
 #' @export
-#' @method confint blblm
-confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
+#' @method confint blblogreg
+confint.blblogreg <- function(object, parm = NULL, level = 0.95, ...) {
   if (is.null(parm)) {
     parm <- attr(terms(object$formula), "term.labels")
   }
@@ -224,10 +183,10 @@ confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
   out
 }
 
-#' @title Predict New Values with blblm Model
+#' @title Predict New Values with blblogreg Model
 #' @description Predicts new values given new data.
 #'
-#' @param object Fitted blblm model.
+#' @param object Fitted blblogreg model.
 #' @param parm Parameters to be estimated with confidence intervals.
 #' @param level Confidence level.
 #' @param ... Additional arguments.
@@ -235,14 +194,14 @@ confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
 #' @return New, predicted values based on given new data.
 #'
 #' @export
-#' @method predict blblm
-predict.blblm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
+#' @method predict blblogreg
+predict.blblogreg <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
   est <- object$estimates
   X <- model.matrix(reformulate(attr(terms(object$formula), "term.labels")), new_data)
   if (confidence) {
     map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
-      apply(1, mean_lwr_upr, level = level) %>%
-      t())
+               apply(1, mean_lwr_upr, level = level) %>%
+               t())
   } else {
     map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
   }

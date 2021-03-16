@@ -1,13 +1,32 @@
-# blblm
+# blblm package
 
 <!-- badges: start -->
 <!-- badges: end -->
+
+# Bag of Little Bootstraps
+This R package implements the bag of little bootstraps algorithm for both linear regression and logistic regression models. 
+
+This package allows users to retrieve the coefficients, sigma values, predicted values, and confidence intervals from the bag of little bootstraps linear regression and/or logistic regression. 
+
+To increase efficiency, users have the option using parallelization depending on which function is chosen to conduct the regression model.
+
+Please look at the vignettes for details on the functions available to users.
+
+# Installation
+
+One way to install the "blblm" package is to use
+
+``` r
+devtools::install_github("ucdavis-sta141c-2021-winter/blblm")
+```
 
 ## Examples
 
 ``` r
 library(blblm)
 fit <- blblm(mpg ~ wt * hp, data = mtcars, m = 3, B = 100)
+fit <- future_blblm(mpg ~ wt * hp, data = mtcars, m = 3, B = 100)
+fit <- future_blblm(mpg ~ wt * hp, data = mtcars, m = 3, B = 100, w = 6)
 coef(fit)
 #> (Intercept)          wt          hp       wt:hp 
 #> 48.88428523 -7.88702986 -0.11576659  0.02600976
@@ -27,4 +46,19 @@ predict(fit, data.frame(wt = c(2.5, 3), hp = c(150, 170)), confidence = TRUE)
 #>        fit      lwr      upr
 #> 1 21.55538 20.02457 22.48764
 #> 2 18.80785 17.50654 19.71772
+fit <- blblogreg(am ~ mpg, data = mtcars, m = 3, B = 100)
+fit <- future_blblogreg(am ~ mpg, data = mtcars, m = 3, B = 100)
+fit <- future_blblogreg(am ~ mpg, data = mtcars, m = 3, B = 100, w = 6)
+coef(fit)
+#> (Intercept)         mpg 
+#> -17.4902027   0.8125803 
+confint(fit, "mpg")
+#>          2.5%    97.5%
+#> mpg 0.1854961 10.04173
+predict(fit, data.frame(mpg = 15.3, 17.8))
+#>         1 
+#> -6.662252 
+predict(fit, data.frame(mpg = 15.3, 17.8), confidence = TRUE)
+#>         fit       lwr       upr
+#> 1 -6.662252 -40.05448 -1.616695
 ```

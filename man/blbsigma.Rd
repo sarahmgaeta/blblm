@@ -2,10 +2,18 @@
 % Please edit documentation in R/blblm.R
 \name{blbsigma}
 \alias{blbsigma}
-\title{compute sigma from fit}
+\title{Bag of Little Bootstraps Sigma}
 \usage{
 blbsigma(fit)
 }
-\description{
+\arguments{
+\item{fit}{Fitted linear model.}
+}
+\value{
+Sigma of the given fit.
+
 compute sigma from fit
+}
+\description{
+Computes sigma of a given linear model.
 }

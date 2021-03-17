@@ -277,7 +277,7 @@ confint.blblogreg <- function(object, parm = NULL, level = 0.95, ...) {
 ```
 
 ## predict
-This function predicts new values given new data using based on a fitted blblm or blblogreg model. 
+This function predicts new values given new data based on a fitted blblm or blblogreg model. 
 
 Inputs:
 
